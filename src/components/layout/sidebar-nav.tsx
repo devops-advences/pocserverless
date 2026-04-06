@@ -14,6 +14,7 @@ const navItems = [
 
 const adminItems = [
   { href: '/dashboard/admin/clients', label: 'Clients', icon: '🏢' },
+  { href: '/dashboard/admin/agents', label: 'Agents', icon: '⚙️' },
   { href: '/dashboard/admin/users', label: 'Utilisateurs', icon: '👥' },
 ]
 
