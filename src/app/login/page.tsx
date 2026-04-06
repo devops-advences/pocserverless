@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,8 +11,13 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
+type Mode = 'magic' | 'password'
+
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [mode, setMode] = useState<Mode>('magic')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,19 +27,23 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     const supabase = createClient()
-
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
+    if (error) setError(error.message)
+    else setSent(true)
+    setLoading(false)
+  }
 
-    if (error) {
-      setError(error.message)
-    } else {
-      setSent(true)
-    }
+  async function handlePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setError(error.message)
+    else router.push('/dashboard')
     setLoading(false)
   }
 
@@ -42,9 +52,7 @@ export default function LoginPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
     if (error) setError(error.message)
     setLoading(false)
@@ -57,7 +65,7 @@ export default function LoginPage() {
           <CardHeader className="text-center">
             <CardTitle>Vérifiez votre email</CardTitle>
             <CardDescription>
-              Un lien de connexion a été envoyé à <strong>{email}</strong>
+              Lien envoyé à <strong>{email}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center text-sm text-muted-foreground">
@@ -81,12 +89,7 @@ export default function LoginPage() {
           <CardDescription>Connectez-vous à votre espace</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={handleGoogleSSO}
-            disabled={loading}
-          >
+          <Button variant="outline" className="w-full gap-2" onClick={handleGoogleSSO} disabled={loading}>
             <svg viewBox="0 0 24 24" className="w-4 h-4">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -102,7 +105,25 @@ export default function LoginPage() {
             <Separator className="flex-1" />
           </div>
 
-          <form onSubmit={handleMagicLink} className="space-y-3">
+          {/* Toggle mode */}
+          <div className="flex rounded-lg border p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setMode('magic')}
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${mode === 'magic' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Magic Link
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('password')}
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${mode === 'password' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Mot de passe
+            </button>
+          </div>
+
+          <form onSubmit={mode === 'magic' ? handleMagicLink : handlePassword} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -114,9 +135,22 @@ export default function LoginPage() {
                 required
               />
             </div>
+            {mode === 'password' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Envoi...' : 'Envoyer le lien magic'}
+              {loading ? 'Connexion...' : mode === 'magic' ? 'Envoyer le lien magic' : 'Se connecter'}
             </Button>
           </form>
         </CardContent>
