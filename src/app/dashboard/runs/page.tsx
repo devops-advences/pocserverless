@@ -4,17 +4,35 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { RunsFilters } from '@/components/runs-filters'
+import { Suspense } from 'react'
 
-export default async function RunsPage() {
+interface SearchParams { status?: string; agent?: string; from?: string; to?: string }
+
+export default async function RunsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: runs } = await supabase
+  const filters = await searchParams
+
+  const { data: agents } = await supabase
+    .from('agents')
+    .select('id, name')
+    .order('name')
+
+  let query = supabase
     .from('agent_runs')
     .select('id, status, items_processed, tokens_used, started_at, ended_at, metadata, agents(id, name)')
     .order('started_at', { ascending: false })
-    .limit(100)
+    .limit(200)
+
+  if (filters.status) query = query.eq('status', filters.status)
+  if (filters.agent) query = query.eq('agent_id', filters.agent)
+  if (filters.from) query = query.gte('started_at', `${filters.from}T00:00:00`)
+  if (filters.to) query = query.lte('started_at', `${filters.to}T23:59:59`)
+
+  const { data: runs } = await query
 
   interface Run {
     id: string
@@ -36,13 +54,17 @@ export default async function RunsPage() {
         <p className="text-muted-foreground">Historique de tous les runs</p>
       </div>
 
+      <Suspense>
+        <RunsFilters agents={(agents ?? []) as { id: string; name: string }[]} />
+      </Suspense>
+
       <Card>
         <CardHeader>
-          <CardTitle>Tous les runs ({typedRuns.length})</CardTitle>
+          <CardTitle>Runs ({typedRuns.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {typedRuns.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Aucune exécution pour le moment</p>
+            <p className="text-center text-muted-foreground py-8">Aucune exécution pour ce filtre</p>
           ) : (
             <Table>
               <TableHeader>
@@ -59,7 +81,9 @@ export default async function RunsPage() {
               <TableBody>
                 {typedRuns.map(run => {
                   const meta = run.metadata ?? {}
-                  const duration = meta.duration_min != null ? `${meta.duration_min} min` : '—'
+                  const duration = (meta as Record<string, unknown>).duration_min != null
+                    ? `${(meta as Record<string, unknown>).duration_min} min`
+                    : '—'
                   return (
                     <TableRow key={run.id}>
                       <TableCell className="text-sm">
@@ -77,8 +101,8 @@ export default async function RunsPage() {
                           {run.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{run.items_processed.toLocaleString('fr-FR')}</TableCell>
-                      <TableCell>{run.tokens_used.toLocaleString('fr-FR')}</TableCell>
+                      <TableCell>{(run.items_processed ?? 0).toLocaleString('fr-FR')}</TableCell>
+                      <TableCell>{(run.tokens_used ?? 0).toLocaleString('fr-FR')}</TableCell>
                       <TableCell className="text-muted-foreground">{duration}</TableCell>
                       <TableCell>
                         {run.agents && (

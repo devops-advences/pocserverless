@@ -10,6 +10,7 @@ const navItems = [
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖' },
   { href: '/dashboard/runs', label: 'Exécutions', icon: '📋' },
   { href: '/dashboard/reports', label: 'Rapports', icon: '📊' },
+  { href: '/dashboard/billing', label: 'Facturation', icon: '💳' },
 ]
 
 const adminItems = [
