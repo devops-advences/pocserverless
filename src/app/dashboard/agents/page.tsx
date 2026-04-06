@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { AutoRefresh } from '@/components/auto-refresh'
 
 export default async function AgentsPage() {
   const supabase = await createClient()
@@ -43,6 +44,7 @@ export default async function AgentsPage() {
 
   return (
     <div className="space-y-6">
+      <AutoRefresh intervalMs={30000} />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Mes agents IA</h1>
         <p className="text-muted-foreground">Activité et historique de vos agents</p>
@@ -64,6 +66,20 @@ export default async function AgentsPage() {
             const totalItems = runs.reduce((s, r) => s + (r.items_processed ?? 0), 0)
             const totalTokens = runs.reduce((s, r) => s + (r.tokens_used ?? 0), 0)
 
+            // Badge dernière activité
+            let activityBadge = { label: 'Aucune activité', variant: 'secondary' as const }
+            if (lastRun) {
+              const minutesAgo = (Date.now() - new Date(lastRun.started_at).getTime()) / 60000
+              if (minutesAgo < 60) {
+                activityBadge = { label: `Il y a ${Math.round(minutesAgo)} min`, variant: 'default' as const }
+              } else if (minutesAgo < 60 * 24) {
+                activityBadge = { label: `Il y a ${Math.round(minutesAgo / 60)}h`, variant: 'default' as const }
+              } else {
+                const days = Math.round(minutesAgo / 60 / 24)
+                activityBadge = { label: `Il y a ${days}j`, variant: 'secondary' as const }
+              }
+            }
+
             return (
               <Link key={agent.id} href={`/dashboard/agents/${agent.id}`}>
                 <Card className="hover:border-foreground/30 transition-colors cursor-pointer h-full">
@@ -77,9 +93,14 @@ export default async function AgentsPage() {
                           </p>
                         )}
                       </div>
-                      <Badge variant={agent.is_active ? 'default' : 'secondary'}>
-                        {agent.is_active ? 'Actif' : 'Inactif'}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={agent.is_active ? 'default' : 'secondary'}>
+                          {agent.is_active ? 'Actif' : 'Inactif'}
+                        </Badge>
+                        <Badge variant={activityBadge.variant} className="text-xs font-normal">
+                          {activityBadge.label}
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
