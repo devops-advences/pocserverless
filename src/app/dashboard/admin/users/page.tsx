@@ -1,10 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CreateUserDialog } from '@/components/admin/create-user-dialog'
+import { UsersTable } from '@/components/admin/users-table'
 
 export default async function AdminUsersPage() {
   const supabase = await createClient()
@@ -19,13 +18,11 @@ export default async function AdminUsersPage() {
 
   if (profile?.role !== 'master') redirect('/dashboard')
 
-  // Récupérer tous les profils avec leur org
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, user_id, role, full_name, created_at, organizations(name, slug)')
     .order('created_at', { ascending: false })
 
-  // Récupérer les emails depuis auth via admin
   const admin = createAdminClient()
   const { data: authUsers } = await admin.auth.admin.listUsers()
 
@@ -46,7 +43,10 @@ export default async function AdminUsersPage() {
     organizations: { name: string; slug: string } | null
   }
 
-  const typedProfiles = (profiles ?? []) as unknown as Profile[]
+  const usersWithEmail = ((profiles ?? []) as unknown as Profile[]).map(p => ({
+    ...p,
+    email: emailMap[p.user_id] ?? '',
+  }))
 
   return (
     <div className="space-y-6">
@@ -60,47 +60,10 @@ export default async function AdminUsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tous les utilisateurs ({typedProfiles.length})</CardTitle>
+          <CardTitle>Tous les utilisateurs ({usersWithEmail.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Organisation</TableHead>
-                <TableHead>Rôle</TableHead>
-                <TableHead>Créé le</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {typedProfiles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    Aucun utilisateur
-                  </TableCell>
-                </TableRow>
-              ) : (
-                typedProfiles.map(p => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.full_name ?? '—'}</TableCell>
-                    <TableCell className="text-muted-foreground">{emailMap[p.user_id] ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{p.organizations?.name ?? '—'}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={p.role === 'master' ? 'default' : 'secondary'}>
-                        {p.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(p.created_at).toLocaleDateString('fr-FR')}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <UsersTable users={usersWithEmail} organizations={organizations ?? []} />
         </CardContent>
       </Card>
     </div>
