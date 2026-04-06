@@ -67,16 +67,20 @@ export default async function AgentsPage() {
             const totalTokens = runs.reduce((s, r) => s + (r.tokens_used ?? 0), 0)
 
             // Badge dernière activité
-            let activityBadge = { label: 'Aucune activité', variant: 'secondary' as const }
+            type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link'
+            let activityLabel = 'Aucune activité'
+            let activityVariant: BadgeVariant = 'secondary'
             if (lastRun) {
               const minutesAgo = (Date.now() - new Date(lastRun.started_at).getTime()) / 60000
               if (minutesAgo < 60) {
-                activityBadge = { label: `Il y a ${Math.round(minutesAgo)} min`, variant: 'default' as const }
+                activityLabel = `Il y a ${Math.round(minutesAgo)} min`
+                activityVariant = 'default'
               } else if (minutesAgo < 60 * 24) {
-                activityBadge = { label: `Il y a ${Math.round(minutesAgo / 60)}h`, variant: 'default' as const }
+                activityLabel = `Il y a ${Math.round(minutesAgo / 60)}h`
+                activityVariant = 'default'
               } else {
-                const days = Math.round(minutesAgo / 60 / 24)
-                activityBadge = { label: `Il y a ${days}j`, variant: 'secondary' as const }
+                activityLabel = `Il y a ${Math.round(minutesAgo / 60 / 24)}j`
+                activityVariant = 'secondary'
               }
             }
 
@@ -97,8 +101,8 @@ export default async function AgentsPage() {
                         <Badge variant={agent.is_active ? 'default' : 'secondary'}>
                           {agent.is_active ? 'Actif' : 'Inactif'}
                         </Badge>
-                        <Badge variant={activityBadge.variant} className="text-xs font-normal">
-                          {activityBadge.label}
+                        <Badge variant={activityVariant} className="text-xs font-normal">
+                          {activityLabel}
                         </Badge>
                       </div>
                     </div>
