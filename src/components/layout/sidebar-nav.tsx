@@ -26,8 +26,8 @@ export function SidebarNav({ role }: { role: UserRole }) {
   return (
     <aside className="w-60 border-r bg-card flex flex-col">
       <div className="p-4 border-b">
-        <h2 className="font-bold text-lg">AI Platform</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Agent Monitor</p>
+        <h2 className="font-bold text-lg">Vigilar</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">VGL — Agent Monitor</p>
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map(item => (

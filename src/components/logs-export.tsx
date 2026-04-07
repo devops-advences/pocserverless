@@ -28,7 +28,7 @@ export function LogsExport({ items }: { items: LogItem[] }) {
     })))
     const wb = xlsx.utils.book_new()
     xlsx.utils.book_append_sheet(wb, ws, 'Logs')
-    xlsx.writeFile(wb, `vigilare_logs_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    xlsx.writeFile(wb, `vgl_logs_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   return (
