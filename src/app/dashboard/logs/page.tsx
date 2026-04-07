@@ -9,9 +9,6 @@ import { Suspense } from 'react'
 
 interface SearchParams { status?: string; agent?: string; from?: string; to?: string }
 
-// URL de base DEX pour les liens produits
-const DEX_PRODUCT_URL = 'https://poc-dex-manager.testadvences.com/manager3/produit'
-
 export default async function LogsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -133,9 +130,7 @@ export default async function LogsPage({ searchParams }: { searchParams: Promise
                     const themes  = Array.isArray(details.themes) ? details.themes as string[] : []
                     const lieux   = Array.isArray(details.lieux)  ? details.lieux  as string[] : []
                     const hasError = item.status === 'error'
-                    const dexUrl  = item.external_id
-                      ? `${DEX_PRODUCT_URL}/${item.external_id}`
-                      : null
+                    const dexUrl  = (details.url as string) ?? null
 
                     return (
                       <tr key={item.id} className={hasError ? 'bg-red-50 dark:bg-red-950/20' : ''}>
@@ -218,7 +213,7 @@ export default async function LogsPage({ searchParams }: { searchParams: Promise
             <span>✅ Traité avec succès</span>
             <span>⚠️ Avertissement</span>
             <span>❌ Erreur — ligne en rouge</span>
-            <span className="ml-auto">Cliquer sur le nom du produit → ouvre dans DEX</span>
+            <span className="ml-auto">Cliquer sur le nom du produit → ouvre dans DEX (si URL fournie par l&apos;agent)</span>
           </div>
         </CardContent>
       </Card>
